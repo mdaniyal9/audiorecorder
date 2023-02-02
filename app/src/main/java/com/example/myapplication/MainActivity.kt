@@ -1,18 +1,14 @@
 package com.example.myapplication
 
 import android.Manifest
-import android.content.Context
 import android.content.pm.PackageManager
-import android.hardware.Camera
 import android.media.*
 import android.media.audiofx.AcousticEchoCanceler
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
-import android.view.View
-import android.widget.FrameLayout
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -73,20 +69,32 @@ class MainActivity : AppCompatActivity() {
             val echoCancler = AcousticEchoCanceler.create(record!!.getAudioSessionId())
             echoCancler.enabled = true
         }
-//        val maxJitter = AudioTrack.getMinBufferSize(
+
+        track = AudioTrack.Builder()
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build()
+            )
+            .setAudioFormat(
+                AudioFormat.Builder()
+                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setSampleRate(AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_MUSIC))
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
+                    .build()
+            )
+            .setBufferSizeInBytes(min)
+            .build()
+    //        track = AudioTrack(
+//            AudioManager.STREAM_MUSIC,
 //            8000,
-//            AudioFormat.CHANNEL_OUT_MONO,
-//            AudioFormat.ENCODING_PCM_16BIT
+//            AudioFormat.CHANNEL_IN_STEREO,
+//            AudioFormat.ENCODING_PCM_16BIT,
+//            min,
+//            AudioTrack.MODE_STREAM
 //        )
-        track = AudioTrack(
-            AudioManager.STREAM_MUSIC,
-            8000,
-            AudioFormat.CHANNEL_IN_STEREO,
-            AudioFormat.ENCODING_PCM_16BIT,
-            min,
-            AudioTrack.MODE_STREAM
-        )
-        track!!.playbackRate = AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_MUSIC)
+//        track!!.playbackRate = AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_MUSIC)
 
     }
 
