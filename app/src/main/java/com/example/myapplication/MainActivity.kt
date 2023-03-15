@@ -1,33 +1,45 @@
 package com.example.myapplication
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.media.*
 import android.media.audiofx.AcousticEchoCanceler
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.Button
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 
 
 class MainActivity : AppCompatActivity() {
 
-    val TAG: String = "MainActivity"
+    private val TAG: String = "MainActivity"
 
-    lateinit var audioManager: AudioManager
+    private lateinit var audioManager: AudioManager
 
-    var isRecording = false
-    var record: AudioRecord? = null
-    var track: AudioTrack? = null
+    private var isRecording = false
+    private var record: AudioRecord? = null
+    private var track: AudioTrack? = null
 
-    val RC_ALL_PERMISSIONS = 9005
+    private val rcAllPermission = 9005
     private val mPermissionsNotGranted: MutableList<String> = java.util.ArrayList()
+
+    private lateinit var btn: Button
+    private var isSpeakerOn = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        btn = findViewById(R.id.btnSwitch)
+        btn.setOnClickListener {
+            switchSpeakerState()
+        }
         allPermissionGranted()
         startHardwareTest()
+        switchSpeakerState()
     }
 
     private fun startHardwareTest(){
@@ -66,7 +78,7 @@ class MainActivity : AppCompatActivity() {
             min
         )
         if (AcousticEchoCanceler.isAvailable()) {
-            val echoCancler = AcousticEchoCanceler.create(record!!.getAudioSessionId())
+            val echoCancler = AcousticEchoCanceler.create(record!!.audioSessionId)
             echoCancler.enabled = true
         }
 
@@ -105,8 +117,8 @@ class MainActivity : AppCompatActivity() {
             AudioFormat.ENCODING_PCM_16BIT
         )
         val lin = ShortArray(min)
-        var num: Int? = 0
-        audioManager.setMode(AudioManager.MODE_NORMAL)
+//        var num: Int? = 0
+        audioManager.mode = AudioManager.MODE_NORMAL
         while (true) {
             if (isRecording) {
 //                num = (record?.read(lin, 0, lin.size) ?: track?.write(lin, 0, num!!))
@@ -116,6 +128,38 @@ class MainActivity : AppCompatActivity() {
                     lin[i] = (lin[i].toInt() * 1).coerceAtMost(Int.MAX_VALUE).toShort()
                 }
                 track?.write(lin, 0, lin.size)
+            }
+        }
+    }
+
+    private fun switchSpeakerState() {
+        if (isSpeakerOn) {
+            isSpeakerOn = false
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+                setCommunicationDevice(this@MainActivity, AudioDeviceInfo.TYPE_BUILTIN_EARPIECE)
+            } else {
+                audioManager.isSpeakerphoneOn = false
+            }
+        } else {
+            isSpeakerOn = true
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                audioManager.mode = AudioManager.MODE_NORMAL
+                setCommunicationDevice(this@MainActivity, AudioDeviceInfo.TYPE_BUILTIN_SPEAKER)
+            } else {
+                audioManager.isSpeakerphoneOn = true
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private fun setCommunicationDevice(context: Context, targetDeviceType: Int) {
+        val audioManager = context.getSystemService(AUDIO_SERVICE) as AudioManager
+        val devices = audioManager.availableCommunicationDevices
+        for (device in devices) {
+            if (device.type == targetDeviceType) {
+                val result = audioManager.setCommunicationDevice(device)
+                Log.d(TAG, result.toString())
             }
         }
     }
@@ -144,7 +188,7 @@ class MainActivity : AppCompatActivity() {
 
         ActivityCompat.requestPermissions(
             this,
-            mPermissionsNotGranted.toTypedArray(), RC_ALL_PERMISSIONS)
+            mPermissionsNotGranted.toTypedArray(), rcAllPermission)
 
         return false
     }
@@ -165,9 +209,9 @@ class MainActivity : AppCompatActivity() {
 
         var deniedAny = false
 
-        if(requestCode == RC_ALL_PERMISSIONS)
+        if(requestCode == rcAllPermission)
         {
-            val j = 0
+//            val j = 0
             for(i in grantResults)
             {
                 Log.e(TAG, "onRequestPermissionsResult: $i")
